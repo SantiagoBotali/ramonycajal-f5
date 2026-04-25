@@ -1,0 +1,56 @@
+You are given a task to integrate an existing React component in the codebase
+
+The codebase should support:
+- shadcn project structure  
+- Tailwind CSS
+- Typescript
+
+If it doesn't, provide instructions on how to setup project via shadcn CLI, install Tailwind or Typescript.
+
+Determine the default path for components and styles. 
+If default path for components is not /components/ui, provide instructions on why it's important to create this folder
+Copy-paste this component to /components/ui folder:
+```tsx
+loader-one.tsx
+import React from 'react'
+import { motion } from "framer-motion";
+
+
+const LoaderOne = () => {
+    return (
+        <div className="flex items-center justify-center gap-1">
+            {[...Array(3)].map((_, i) => (
+                <motion.div
+                    key={i}
+                    className="h-3 w-3 rounded-full bg-blue-500"
+                    initial={{ x: 0 }}
+                    animate={{
+                        x: [0, 10, 0],
+                        opacity: [0.5, 1, 0.5],
+                        scale: [1, 1.2, 1],
+                    }}
+                    transition={{
+                        duration: 1,
+                        repeat: Infinity,
+                        delay: i * 0.2,
+                    }}
+                />
+            ))}
+        </div>
+    )
+}
+
+export default LoaderOne
+
+demo.tsx
+import LoaderOne from "@/components/ui/loader-one";
+
+export function LoaderDemo() {
+    return <LoaderOne />;
+}
+```
+
+Install NPM dependencies:
+```bash
+framer-motion
+```
