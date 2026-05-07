@@ -304,7 +304,7 @@ export default function EditarPartidoPage({ params }: PageProps) {
 
             <div>
               <label className="text-xs font-semibold text-white uppercase tracking-wide block mb-1.5">Resultado</label>
-              <div className="flex items-center gap-3">
+              <div className="flex items-center justify-center gap-4">
                 <input
                   type="text"
                   inputMode="numeric"
@@ -312,7 +312,7 @@ export default function EditarPartidoPage({ params }: PageProps) {
                   value={score1}
                   onChange={(e) => setScore1(e.target.value.replace(/\D/g, ""))}
                   placeholder="0"
-                  className="flex-1 bg-surface-2 border border-border rounded-xl px-3 py-3 text-2xl font-black text-center text-accent focus:outline-none focus:border-accent"
+                  className="w-24 bg-surface-2 border border-border rounded-xl px-2 py-3 text-2xl font-black text-center text-accent focus:outline-none focus:border-accent"
                 />
                 <span className="text-white font-light text-xl">–</span>
                 <input
@@ -322,7 +322,7 @@ export default function EditarPartidoPage({ params }: PageProps) {
                   value={score2}
                   onChange={(e) => setScore2(e.target.value.replace(/\D/g, ""))}
                   placeholder="0"
-                  className="flex-1 bg-surface-2 border border-border rounded-xl px-3 py-3 text-2xl font-black text-center text-red-400 focus:outline-none focus:border-red-400"
+                  className="w-24 bg-surface-2 border border-border rounded-xl px-2 py-3 text-2xl font-black text-center text-red-400 focus:outline-none focus:border-red-400"
                 />
               </div>
             </div>
