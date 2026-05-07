@@ -1,15 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Filter } from "lucide-react";
-import { getRankedPlayers } from "@/lib/data";
+import { MATCHES, getRankedPlayersFromMatches } from "@/lib/data";
+import { initializeMatches, loadStoredMatches } from "@/lib/storage";
+import { Match } from "@/lib/types";
 import RankingCard from "@/components/RankingCard";
 import { AnimatedText } from "@/components/ui/AnimatedShinyText";
 
 export default function RankingPage() {
+  const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [showRYCOnly, setShowRYCOnly] = useState(false);
-  const ranked = getRankedPlayers();
+
+  useEffect(() => {
+    initializeMatches(MATCHES);
+    setAllMatches(loadStoredMatches());
+  }, []);
+
+  const ranked = useMemo(() => getRankedPlayersFromMatches(allMatches), [allMatches]);
   const filtered = showRYCOnly ? ranked.filter((p) => p.isRYC) : ranked;
 
   return (

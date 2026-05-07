@@ -34,6 +34,12 @@ export function getPlayerImage(nameOrSlug: string): string {
   return "/jugadores/DefaultImage.png";
 }
 
+export function getMVPImage(nameOrSlug: string): string {
+  const slug = nameOrSlug.includes(" ") ? nameToSlug(nameOrSlug) : nameOrSlug;
+  if (RYC_SLUGS.has(slug)) return `/jugadores-mvps/${slug}-mvp.png`;
+  return "/jugadores-mvps/default-mvp.png";
+}
+
 export function isRYCPlayer(nameOrSlug: string): boolean {
   const slug = nameOrSlug.includes(" ") ? nameToSlug(nameOrSlug) : nameOrSlug;
   return RYC_SLUGS.has(slug);
@@ -178,8 +184,40 @@ export function getMatchResult(match: Match): "team1" | "team2" | "draw" {
   return "draw";
 }
 
+/** @deprecated Use getRankedPlayersFromMatches for live data */
 export function getRankedPlayers(): Player[] {
   return [...PLAYERS].sort((a, b) => {
+    if (b.stats.indice !== a.stats.indice) return b.stats.indice - a.stats.indice;
+    return b.stats.puntos - a.stats.puntos;
+  });
+}
+
+/** Calculates a single player's stats from all matches dynamically. */
+export function calculatePlayerStats(allMatches: Match[], playerName: string): import("./types").PlayerStats {
+  let pj = 0, pg = 0, pe = 0, pp = 0;
+  for (const match of allMatches) {
+    const inTeam1 = match.team1.players.includes(playerName);
+    const inTeam2 = match.team2.players.includes(playerName);
+    if (!inTeam1 && !inTeam2) continue;
+    pj++;
+    const result = getMatchResult(match);
+    if (result === "draw") pe++;
+    else if ((result === "team1" && inTeam1) || (result === "team2" && inTeam2)) pg++;
+    else pp++;
+  }
+  const tasa = pj > 0 ? parseFloat(((pg / pj) * 100).toFixed(2)) : 0;
+  const puntos = pg * 3 + pe;
+  const indice = parseFloat(((puntos * tasa) / 100).toFixed(2));
+  return { pj, pg, pe, pp, tasa, puntos, indice };
+}
+
+/** Returns all players with stats dynamically computed from the given match list. */
+export function getRankedPlayersFromMatches(allMatches: Match[]): Player[] {
+  const players = PLAYERS.map((p) => ({
+    ...p,
+    stats: calculatePlayerStats(allMatches, p.name),
+  }));
+  return players.sort((a, b) => {
     if (b.stats.indice !== a.stats.indice) return b.stats.indice - a.stats.indice;
     return b.stats.puntos - a.stats.puntos;
   });

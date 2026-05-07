@@ -5,24 +5,30 @@ import { motion } from "framer-motion";
 import { Clock, Plus } from "lucide-react";
 import Link from "next/link";
 import { MATCHES } from "@/lib/data";
-import { loadStoredMatches } from "@/lib/storage";
+import { loadStoredMatches, initializeMatches, deleteMatch } from "@/lib/storage";
 import { Match } from "@/lib/types";
 import MatchCard from "@/components/MatchCard";
 
 export default function HistorialPage() {
-  const [userMatches, setUserMatches] = useState<Match[]>([]);
+  const [matches, setMatches] = useState<Match[]>([]);
 
   useEffect(() => {
-    setUserMatches(loadStoredMatches());
+    initializeMatches(MATCHES);
+    setMatches(loadStoredMatches());
   }, []);
 
-  const allMatches = [...userMatches, ...MATCHES].sort((a, b) => {
+  const sorted = [...matches].sort((a, b) => {
     const parseDate = (d: string) => {
       const [day, month, year] = d.split("/").map(Number);
       return new Date(year, month - 1, day).getTime();
     };
     return parseDate(b.date) - parseDate(a.date);
   });
+
+  function handleDelete(id: string) {
+    deleteMatch(id);
+    setMatches(loadStoredMatches());
+  }
 
   return (
     <div className="max-w-lg mx-auto px-4 pt-10 pb-6">
@@ -34,7 +40,7 @@ export default function HistorialPage() {
               <span className="text-xs font-semibold text-accent uppercase tracking-widest">2026</span>
             </div>
             <h1 className="text-2xl font-black text-white">Historial</h1>
-            <p className="text-white text-xs mt-1">{allMatches.length} partidos jugados</p>
+            <p className="text-white text-xs mt-1">{sorted.length} partidos jugados</p>
           </div>
           <Link
             href="/nuevo-partido"
@@ -46,7 +52,7 @@ export default function HistorialPage() {
         </div>
       </motion.div>
 
-      {allMatches.length === 0 ? (
+      {sorted.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-16 gap-3">
           <Clock size={36} className="text-white/30" />
           <p className="text-white text-sm">No hay partidos registrados</p>
@@ -56,14 +62,14 @@ export default function HistorialPage() {
         </div>
       ) : (
         <div className="flex flex-col gap-3">
-          {allMatches.map((match, i) => (
+          {sorted.map((match, i) => (
             <motion.div
               key={match.id}
               initial={{ opacity: 0, y: 16 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: i * 0.05 }}
             >
-              <MatchCard match={match} />
+              <MatchCard match={match} onDelete={handleDelete} />
             </motion.div>
           ))}
         </div>

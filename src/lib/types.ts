@@ -27,4 +27,5 @@ export interface Match {
   team1: MatchTeam;
   team2: MatchTeam;
   isUserCreated?: boolean;
+  mvp?: string;
 }

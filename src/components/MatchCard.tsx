@@ -2,20 +2,28 @@
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronDown, Calendar } from "lucide-react";
+import { ChevronDown, Calendar, Pencil, Trash2, AlertTriangle, Trophy } from "lucide-react";
+import Image from "next/image";
+import Link from "next/link";
 import { Match } from "@/lib/types";
-import { getMatchResult } from "@/lib/data";
+import { getMatchResult, getMVPImage } from "@/lib/data";
 import PlayerAvatar from "./PlayerAvatar";
 import SoccerField from "./SoccerField";
 
 interface Props {
   match: Match;
+  onDelete?: (id: string) => void;
 }
 
-export default function MatchCard({ match }: Props) {
+export default function MatchCard({ match, onDelete }: Props) {
   const [open, setOpen] = useState(false);
+  const [confirming, setConfirming] = useState(false);
   const result = getMatchResult(match);
   const isDraw = result === "draw";
+
+  function handleDelete() {
+    onDelete?.(match.id);
+  }
 
   return (
     <div className="bg-surface border border-border rounded-2xl overflow-hidden">
@@ -120,6 +128,86 @@ export default function MatchCard({ match }: Props) {
                   </div>
                 </div>
               </div>
+
+              {/* MVP */}
+              {match.mvp && (
+                <div className="mx-4 mb-4 border border-gold/25 rounded-2xl overflow-hidden" style={{ background: "linear-gradient(to bottom, rgba(245,158,11,0.08), rgba(245,158,11,0.04))" }}>
+                  <div className="flex items-center gap-2 px-3 pt-3 pb-2">
+                    <Trophy size={14} className="text-gold flex-shrink-0" />
+                    <p className="text-[10px] font-bold text-gold uppercase tracking-widest">MVP del partido</p>
+                  </div>
+                  <div className="relative w-full">
+                    <Image
+                      src={getMVPImage(match.mvp)}
+                      alt={match.mvp}
+                      width={0}
+                      height={0}
+                      sizes="100vw"
+                      className="w-full h-auto block"
+                    />
+                    <div className="absolute bottom-0 left-0 right-0 px-3 py-2.5" style={{ background: "linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 100%)" }}>
+                      <p className="text-white font-black text-base leading-tight">{match.mvp}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Actions */}
+              <AnimatePresence mode="wait">
+                {!confirming ? (
+                  <motion.div
+                    key="actions"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    className="flex gap-2 mx-4 mb-4"
+                  >
+                    <Link
+                      href={`/editar-partido/${match.id}`}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-surface-2 border border-border text-white/80 text-xs font-semibold hover:border-accent/50 hover:text-accent transition-colors"
+                    >
+                      <Pencil size={13} />
+                      Editar
+                    </Link>
+                    <button
+                      onClick={() => setConfirming(true)}
+                      className="flex-1 flex items-center justify-center gap-1.5 py-2.5 rounded-xl bg-surface-2 border border-border text-white/80 text-xs font-semibold hover:border-red-500/50 hover:text-red-400 transition-colors"
+                    >
+                      <Trash2 size={13} />
+                      Eliminar
+                    </button>
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="confirm"
+                    initial={{ opacity: 0, y: 4 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0 }}
+                    className="mx-4 mb-4 p-3 bg-red-950/40 border border-red-500/30 rounded-xl"
+                  >
+                    <div className="flex items-center gap-2 mb-3">
+                      <AlertTriangle size={14} className="text-red-400 flex-shrink-0" />
+                      <p className="text-xs text-red-300 font-medium">
+                        ¿Eliminar este partido? Los rankings se actualizarán.
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setConfirming(false)}
+                        className="flex-1 py-2 rounded-lg bg-surface-2 border border-border text-white/70 text-xs font-semibold"
+                      >
+                        Cancelar
+                      </button>
+                      <button
+                        onClick={handleDelete}
+                        className="flex-1 py-2 rounded-lg bg-red-600 text-white text-xs font-bold"
+                      >
+                        Sí, eliminar
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
           </motion.div>
         )}

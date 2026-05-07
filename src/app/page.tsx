@@ -1,15 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Filter } from "lucide-react";
-import { getRankedPlayers } from "@/lib/data";
+import { MATCHES, getRankedPlayersFromMatches } from "@/lib/data";
+import { initializeMatches, loadStoredMatches } from "@/lib/storage";
+import { Match } from "@/lib/types";
 import RankingCard from "@/components/RankingCard";
 import { AnimatedText } from "@/components/ui/AnimatedShinyText";
 
 export default function HomePage() {
+  const [allMatches, setAllMatches] = useState<Match[]>([]);
   const [showRYCOnly, setShowRYCOnly] = useState(false);
-  const ranked = getRankedPlayers();
+
+  useEffect(() => {
+    initializeMatches(MATCHES);
+    setAllMatches(loadStoredMatches());
+  }, []);
+
+  const ranked = useMemo(() => getRankedPlayersFromMatches(allMatches), [allMatches]);
   const filtered = showRYCOnly ? ranked.filter((p) => p.isRYC) : ranked;
   const top5 = filtered.slice(0, 5);
 
@@ -78,7 +87,7 @@ export default function HomePage() {
           className="mt-8 grid grid-cols-3 gap-3"
         >
           {[
-            { label: "Partidos", value: "7" },
+            { label: "Partidos", value: allMatches.length.toString() },
             { label: "Jugadores", value: ranked.filter((p) => p.stats.pj > 0).length.toString() },
             { label: "Líderes RYC", value: ranked.filter((p) => p.isRYC && p.stats.pj > 0).length.toString() },
           ].map((stat) => (

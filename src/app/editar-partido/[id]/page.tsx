@@ -1,19 +1,29 @@
 "use client";
 
-import { useState } from "react";
+import { use, useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { ChevronLeft, ChevronRight, Check, Swords, Trophy } from "lucide-react";
+import { ChevronLeft, ChevronRight, Check, Pencil, Trophy } from "lucide-react";
 import { PLAYERS } from "@/lib/data";
-import { saveMatch, generateId } from "@/lib/storage";
+import { loadStoredMatches, updateMatch } from "@/lib/storage";
+import { Match } from "@/lib/types";
 import PlayerPicker from "@/components/PlayerPicker";
 import PlayerAvatar from "@/components/PlayerAvatar";
 import MVPCelebration from "@/components/MVPCelebration";
 
 type Step = "select" | "details" | "confirm";
 
-export default function NuevoPartidoPage() {
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
+export default function EditarPartidoPage({ params }: PageProps) {
+  const { id } = use(params);
   const router = useRouter();
+
+  const [original, setOriginal] = useState<Match | null>(null);
+  const [notFound, setNotFound] = useState(false);
+
   const [step, setStep] = useState<Step>("select");
   const [activeTeam, setActiveTeam] = useState<1 | 2>(1);
   const [team1, setTeam1] = useState<string[]>([]);
@@ -22,16 +32,31 @@ export default function NuevoPartidoPage() {
   const [team2Name, setTeam2Name] = useState("");
   const [score1, setScore1] = useState("");
   const [score2, setScore2] = useState("");
-  const [date, setDate] = useState(() => {
-    const today = new Date();
-    return `${String(today.getDate()).padStart(2, "0")}/${String(today.getMonth() + 1).padStart(2, "0")}/${today.getFullYear()}`;
-  });
+  const [date, setDate] = useState("");
+  const [saving, setSaving] = useState(false);
 
   // MVP flow
   const [showMVPPicker, setShowMVPPicker] = useState(false);
   const [selectedMVP, setSelectedMVP] = useState<string | null>(null);
   const [showCelebration, setShowCelebration] = useState(false);
-  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    const matches = loadStoredMatches();
+    const match = matches.find((m) => m.id === id);
+    if (!match) {
+      setNotFound(true);
+      return;
+    }
+    setOriginal(match);
+    setTeam1(match.team1.players.slice(0, 5));
+    setTeam2(match.team2.players.slice(0, 5));
+    setTeam1Name(match.team1.name);
+    setTeam2Name(match.team2.name);
+    setScore1(match.team1.score.toString());
+    setScore2(match.team2.score.toString());
+    setDate(match.date);
+    if (match.mvp) setSelectedMVP(match.mvp);
+  }, [id]);
 
   function handleSelect(name: string) {
     if (activeTeam === 1) {
@@ -50,7 +75,7 @@ export default function NuevoPartidoPage() {
   const canSave = team1Name.trim() && team2Name.trim() && score1 !== "" && score2 !== "";
 
   function handleConfirmSave() {
-    if (!canSave || saving) return;
+    if (!canSave || saving || !original) return;
     setShowMVPPicker(true);
   }
 
@@ -61,7 +86,7 @@ export default function NuevoPartidoPage() {
 
   function handleSkipMVP() {
     setShowMVPPicker(false);
-    doSave(null);
+    doSave(selectedMVP);
   }
 
   function handleCelebrationClose() {
@@ -71,24 +96,40 @@ export default function NuevoPartidoPage() {
   }
 
   function doSave(mvp: string | null) {
-    if (saving) return;
+    if (saving || !original) return;
     setSaving(true);
-    const match = {
-      id: generateId(),
+    const updated: Match = {
+      ...original,
       date,
       team1: { name: team1Name.trim(), players: team1, score: parseInt(score1) },
       team2: { name: team2Name.trim(), players: team2, score: parseInt(score2) },
-      isUserCreated: true,
-      ...(mvp ? { mvp } : {}),
+      mvp: mvp ?? undefined,
     };
-    saveMatch(match);
+    updateMatch(updated);
     setTimeout(() => router.push("/historial"), 400);
+  }
+
+  if (notFound) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen gap-4">
+        <p className="text-white/60 text-sm">Partido no encontrado</p>
+        <button onClick={() => router.back()} className="text-primary text-sm font-semibold">Volver</button>
+      </div>
+    );
+  }
+
+  if (!original) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <p className="text-white/40 text-sm">Cargando...</p>
+      </div>
+    );
   }
 
   const stepLabels: Record<Step, string> = {
     select: "Seleccioná jugadores",
     details: "Detalles del partido",
-    confirm: "Confirmar",
+    confirm: "Confirmar cambios",
   };
 
   const allMatchPlayers = [...team1, ...team2];
@@ -107,29 +148,40 @@ export default function NuevoPartidoPage() {
             transition={{ type: "spring", stiffness: 300, damping: 28 }}
           >
             <div className="flex-1 overflow-y-auto px-4 pt-10 pb-6 max-w-lg mx-auto w-full">
-              {/* Header */}
               <div className="flex items-center gap-2 mb-1">
                 <Trophy size={18} className="text-gold" />
-                <span className="text-xs font-semibold text-gold uppercase tracking-widest">Nuevo partido</span>
+                <span className="text-xs font-semibold text-gold uppercase tracking-widest">Editar partido</span>
               </div>
               <h2 className="text-2xl font-black text-white mb-1">¿Quién fue el MVP?</h2>
-              <p className="text-white/50 text-xs mb-6">Elegí el mejor jugador del partido</p>
+              <p className="text-white/50 text-xs mb-6">
+                {selectedMVP ? `MVP actual: ${selectedMVP} — elegí otro para cambiarlo` : "Elegí el mejor jugador del partido"}
+              </p>
 
               {/* Player grid */}
               <div className="grid grid-cols-4 gap-2">
                 {allMatchPlayers.map((name) => {
                   const inTeam1 = team1.includes(name);
+                  const isCurrent = selectedMVP === name;
                   return (
                     <motion.button
                       key={name}
                       whileTap={{ scale: 0.92 }}
                       onClick={() => handleMVPSelect(name)}
-                      className="flex flex-col items-center gap-1.5 p-2.5 rounded-xl border border-border bg-surface-2 hover:border-gold/50 hover:bg-gold/5 transition-all duration-150"
+                      className={`flex flex-col items-center gap-1.5 p-2.5 rounded-xl border transition-all duration-150 ${
+                        isCurrent
+                          ? "border-gold bg-gold/10"
+                          : "border-border bg-surface-2 hover:border-gold/50 hover:bg-gold/5"
+                      }`}
                     >
                       <PlayerAvatar name={name} size={44} />
-                      <span className={`text-[9px] font-semibold leading-tight text-center line-clamp-2 ${inTeam1 ? "text-accent" : "text-red-400"}`}>
+                      <span className={`text-[9px] font-semibold leading-tight text-center line-clamp-2 ${
+                        isCurrent ? "text-gold" : inTeam1 ? "text-accent" : "text-red-400"
+                      }`}>
                         {name.split(" ")[0]}
                       </span>
+                      {isCurrent && (
+                        <div className="w-3 h-3 rounded-full bg-gold absolute top-1 right-1" />
+                      )}
                     </motion.button>
                   );
                 })}
@@ -140,7 +192,7 @@ export default function NuevoPartidoPage() {
                 onClick={handleSkipMVP}
                 className="mt-6 w-full py-3 rounded-xl bg-surface-2 border border-border text-white/50 text-sm font-semibold hover:text-white/80 transition-colors"
               >
-                Saltear — guardar sin MVP
+                {selectedMVP ? `Mantener MVP: ${selectedMVP}` : "Saltear — guardar sin MVP"}
               </button>
             </div>
           </motion.div>
@@ -153,17 +205,26 @@ export default function NuevoPartidoPage() {
           <MVPCelebration
             playerName={selectedMVP}
             onClose={handleCelebrationClose}
+            saveLabel="¡Listo! Guardar cambios"
           />
         )}
       </AnimatePresence>
 
       {/* Header */}
       <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="mb-6">
+        <button
+          onClick={() => router.back()}
+          className="flex items-center gap-1 text-white/50 text-xs mb-3 hover:text-white/80 transition-colors"
+        >
+          <ChevronLeft size={14} />
+          Volver al historial
+        </button>
         <div className="flex items-center gap-2 mb-1">
-          <Swords size={16} className="text-accent" />
-          <span className="text-xs font-semibold text-accent uppercase tracking-widest">Nuevo partido</span>
+          <Pencil size={16} className="text-accent" />
+          <span className="text-xs font-semibold text-accent uppercase tracking-widest">Editar partido</span>
         </div>
-        <h1 className="text-2xl font-black text-white">Crear Partido</h1>
+        <h1 className="text-2xl font-black text-white">Modificar Partido</h1>
+        <p className="text-white/50 text-xs mt-0.5">{original.date}</p>
 
         {/* Steps indicator */}
         <div className="flex items-center gap-2 mt-3">
@@ -172,11 +233,11 @@ export default function NuevoPartidoPage() {
             return (
               <div key={s} className="flex items-center gap-2">
                 <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold transition-colors ${
-                  step === s ? "bg-primary text-bg" : done ? "bg-primary/30 text-primary" : "bg-surface-2 text-white"
+                  step === s ? "bg-accent text-bg" : done ? "bg-accent/30 text-accent" : "bg-surface-2 text-white"
                 }`}>
                   {done ? <Check size={10} /> : i + 1}
                 </div>
-                {i < 2 && <div className={`flex-1 h-px w-6 ${done ? "bg-primary/40" : "bg-border"}`} />}
+                {i < 2 && <div className={`flex-1 h-px w-6 ${done ? "bg-accent/40" : "bg-border"}`} />}
               </div>
             );
           })}
@@ -201,7 +262,7 @@ export default function NuevoPartidoPage() {
                 disabled={!canProceed}
                 onClick={() => setStep("details")}
                 className={`w-full py-3.5 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 ${
-                  canProceed ? "bg-primary text-bg" : "bg-surface-2 text-white/40 border border-border"
+                  canProceed ? "bg-accent text-bg" : "bg-surface-2 text-white/40 border border-border"
                 }`}
               >
                 Continuar
@@ -286,7 +347,7 @@ export default function NuevoPartidoPage() {
                 disabled={!canSave}
                 onClick={() => setStep("confirm")}
                 className={`flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 transition-all duration-200 ${
-                  canSave ? "bg-primary text-bg" : "bg-surface-2 text-white/40 border border-border"
+                  canSave ? "bg-accent text-bg" : "bg-surface-2 text-white/40 border border-border"
                 }`}
               >
                 Revisar
@@ -335,9 +396,9 @@ export default function NuevoPartidoPage() {
               <button
                 onClick={handleConfirmSave}
                 disabled={saving}
-                className="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 bg-primary text-bg transition-all duration-200 active:scale-95"
+                className="flex-1 py-3 rounded-xl font-bold text-sm flex items-center justify-center gap-2 bg-accent text-bg transition-all duration-200 active:scale-95"
               >
-                {saving ? "Guardando..." : "Guardar Partido"}
+                {saving ? "Guardando..." : "Guardar Cambios"}
                 {!saving && <Check size={16} />}
               </button>
             </div>
