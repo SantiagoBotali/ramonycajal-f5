@@ -135,7 +135,7 @@ export default function EditarPartidoPage({ params }: PageProps) {
   const allMatchPlayers = [...team1, ...team2];
 
   return (
-    <div className="max-w-lg mx-auto px-4 pt-10 pb-6">
+    <div className="max-w-lg mx-auto px-4 pt-10 pb-28">
       {/* MVP Picker overlay */}
       <AnimatePresence>
         {showMVPPicker && !showCelebration && (
@@ -286,7 +286,7 @@ export default function EditarPartidoPage({ params }: PageProps) {
                   value={team1Name}
                   onChange={(e) => setTeam1Name(e.target.value)}
                   placeholder="Nombre del equipo"
-                  className="w-full bg-surface-2 border border-border rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-accent"
+                  className="w-full bg-surface-2 border border-border rounded-xl px-3 py-2.5 text-base text-white placeholder:text-white/40 focus:outline-none focus:border-accent"
                   maxLength={40}
                 />
               </div>
@@ -296,7 +296,7 @@ export default function EditarPartidoPage({ params }: PageProps) {
                   value={team2Name}
                   onChange={(e) => setTeam2Name(e.target.value)}
                   placeholder="Nombre del equipo"
-                  className="w-full bg-surface-2 border border-border rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-red-400"
+                  className="w-full bg-surface-2 border border-border rounded-xl px-3 py-2.5 text-base text-white placeholder:text-white/40 focus:outline-none focus:border-red-400"
                   maxLength={40}
                 />
               </div>
@@ -306,19 +306,21 @@ export default function EditarPartidoPage({ params }: PageProps) {
               <label className="text-xs font-semibold text-white uppercase tracking-wide block mb-1.5">Resultado</label>
               <div className="flex items-center gap-3">
                 <input
-                  type="number"
-                  min={0}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={score1}
-                  onChange={(e) => setScore1(e.target.value)}
+                  onChange={(e) => setScore1(e.target.value.replace(/\D/g, ""))}
                   placeholder="0"
                   className="flex-1 bg-surface-2 border border-border rounded-xl px-3 py-3 text-2xl font-black text-center text-accent focus:outline-none focus:border-accent"
                 />
                 <span className="text-white font-light text-xl">–</span>
                 <input
-                  type="number"
-                  min={0}
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
                   value={score2}
-                  onChange={(e) => setScore2(e.target.value)}
+                  onChange={(e) => setScore2(e.target.value.replace(/\D/g, ""))}
                   placeholder="0"
                   className="flex-1 bg-surface-2 border border-border rounded-xl px-3 py-3 text-2xl font-black text-center text-red-400 focus:outline-none focus:border-red-400"
                 />
@@ -331,7 +333,7 @@ export default function EditarPartidoPage({ params }: PageProps) {
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
                 placeholder="DD/MM/AAAA"
-                className="w-full bg-surface-2 border border-border rounded-xl px-3 py-2.5 text-sm text-white placeholder:text-white/40 focus:outline-none focus:border-primary"
+                className="w-full bg-surface-2 border border-border rounded-xl px-3 py-2.5 text-base text-white placeholder:text-white/40 focus:outline-none focus:border-primary"
               />
             </div>
 
