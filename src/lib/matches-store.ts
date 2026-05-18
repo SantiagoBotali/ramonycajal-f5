@@ -9,6 +9,7 @@ const MATCHES_KEY = "ryc:matches:v1";
 function findEnvPair(): { url?: string; token?: string } {
   const explicitPairs = [
     ["UPSTASH_REDIS_REST_URL", "UPSTASH_REDIS_REST_TOKEN"],
+    ["UPSTASH_REDIS_REST_KV_REST_API_URL", "UPSTASH_REDIS_REST_KV_REST_API_TOKEN"],
     ["KV_REST_API_URL", "KV_REST_API_TOKEN"],
     ["STORAGE_URL", "STORAGE_TOKEN"],
     ["UPSTASH_KV_REST_API_URL", "UPSTASH_KV_REST_API_TOKEN"],
