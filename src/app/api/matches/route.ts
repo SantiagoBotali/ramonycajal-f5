@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { createMatch, getMatches } from "@/lib/matches-store";
+import { createMatch, getMatches, importMatches } from "@/lib/matches-store";
 
 export const dynamic = "force-dynamic";
 
@@ -21,6 +21,15 @@ export async function POST(request: Request) {
   try {
     const match = await createMatch(await request.json());
     return NextResponse.json({ match }, { status: 201 });
+  } catch (error) {
+    return apiError(error);
+  }
+}
+
+export async function PUT(request: Request) {
+  try {
+    const matches = await importMatches(await request.json());
+    return NextResponse.json({ matches });
   } catch (error) {
     return apiError(error);
   }

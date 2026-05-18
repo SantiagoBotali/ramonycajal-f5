@@ -2,6 +2,9 @@
 
 import { Match } from "./types";
 
+const LEGACY_KEY = "ryc-matches";
+const MIGRATED_KEY = "ryc-matches-migrated-to-redis";
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     ...init,
@@ -20,9 +23,42 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return response.json() as Promise<T>;
 }
 
+function loadLegacyMatches(): Match[] {
+  if (typeof window === "undefined" || localStorage.getItem(MIGRATED_KEY)) return [];
+
+  try {
+    const raw = localStorage.getItem(LEGACY_KEY);
+    const matches = raw ? JSON.parse(raw) : [];
+    return Array.isArray(matches) ? (matches as Match[]) : [];
+  } catch {
+    return [];
+  }
+}
+
+async function migrateLegacyMatches(serverMatches: Match[]): Promise<Match[]> {
+  const legacyMatches = loadLegacyMatches();
+  if (legacyMatches.length === 0) return serverMatches;
+
+  const serverIds = new Set(serverMatches.map((match) => match.id));
+  const missingMatches = legacyMatches.filter((match) => !serverIds.has(match.id));
+
+  if (missingMatches.length === 0) {
+    localStorage.setItem(MIGRATED_KEY, "true");
+    return serverMatches;
+  }
+
+  const data = await request<{ matches: Match[] }>("/api/matches", {
+    method: "PUT",
+    body: JSON.stringify(missingMatches),
+  });
+
+  localStorage.setItem(MIGRATED_KEY, "true");
+  return data.matches;
+}
+
 export async function loadStoredMatches(): Promise<Match[]> {
   const data = await request<{ matches: Match[] }>("/api/matches");
-  return data.matches;
+  return migrateLegacyMatches(data.matches);
 }
 
 export async function saveMatch(match: Match): Promise<Match> {
