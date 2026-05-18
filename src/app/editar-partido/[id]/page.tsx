@@ -41,21 +41,36 @@ export default function EditarPartidoPage({ params }: PageProps) {
   const [showCelebration, setShowCelebration] = useState(false);
 
   useEffect(() => {
-    const matches = loadStoredMatches();
-    const match = matches.find((m) => m.id === id);
-    if (!match) {
-      setNotFound(true);
-      return;
-    }
-    setOriginal(match);
-    setTeam1(match.team1.players.slice(0, 5));
-    setTeam2(match.team2.players.slice(0, 5));
-    setTeam1Name(match.team1.name);
-    setTeam2Name(match.team2.name);
-    setScore1(match.team1.score.toString());
-    setScore2(match.team2.score.toString());
-    setDate(match.date);
-    if (match.mvp) setSelectedMVP(match.mvp);
+    let mounted = true;
+
+    loadStoredMatches()
+      .then((matches) => {
+        if (!mounted) return;
+
+        const match = matches.find((m) => m.id === id);
+        if (!match) {
+          setNotFound(true);
+          return;
+        }
+
+        setOriginal(match);
+        setTeam1(match.team1.players.slice(0, 5));
+        setTeam2(match.team2.players.slice(0, 5));
+        setTeam1Name(match.team1.name);
+        setTeam2Name(match.team2.name);
+        setScore1(match.team1.score.toString());
+        setScore2(match.team2.score.toString());
+        setDate(match.date);
+        if (match.mvp) setSelectedMVP(match.mvp);
+      })
+      .catch((error) => {
+        console.error(error);
+        if (mounted) setNotFound(true);
+      });
+
+    return () => {
+      mounted = false;
+    };
   }, [id]);
 
   function handleSelect(name: string) {
@@ -86,16 +101,16 @@ export default function EditarPartidoPage({ params }: PageProps) {
 
   function handleSkipMVP() {
     setShowMVPPicker(false);
-    doSave(selectedMVP);
+    void doSave(selectedMVP);
   }
 
   function handleCelebrationClose() {
     setShowCelebration(false);
     setShowMVPPicker(false);
-    doSave(selectedMVP);
+    void doSave(selectedMVP);
   }
 
-  function doSave(mvp: string | null) {
+  async function doSave(mvp: string | null) {
     if (saving || !original) return;
     setSaving(true);
     const updated: Match = {
@@ -105,8 +120,13 @@ export default function EditarPartidoPage({ params }: PageProps) {
       team2: { name: team2Name.trim(), players: team2, score: parseInt(score2) },
       mvp: mvp ?? undefined,
     };
-    updateMatch(updated);
-    setTimeout(() => router.push("/historial"), 400);
+    try {
+      await updateMatch(updated);
+      setTimeout(() => router.push("/historial"), 400);
+    } catch (error) {
+      console.error(error);
+      setSaving(false);
+    }
   }
 
   if (notFound) {

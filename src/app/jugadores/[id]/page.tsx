@@ -4,8 +4,8 @@ import { use, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { ChevronLeft, Trophy, TrendingUp, Target, Swords } from "lucide-react";
-import { PLAYERS_BY_ID, MATCHES, getRankedPlayersFromMatches } from "@/lib/data";
-import { initializeMatches, loadStoredMatches } from "@/lib/storage";
+import { PLAYERS_BY_ID, getRankedPlayersFromMatches } from "@/lib/data";
+import { loadStoredMatches } from "@/lib/storage";
 import { Match } from "@/lib/types";
 import PlayerAvatar from "@/components/PlayerAvatar";
 
@@ -21,8 +21,17 @@ export default function PlayerProfilePage({ params }: PageProps) {
   const [allMatches, setAllMatches] = useState<Match[]>([]);
 
   useEffect(() => {
-    initializeMatches(MATCHES);
-    setAllMatches(loadStoredMatches());
+    let mounted = true;
+
+    loadStoredMatches()
+      .then((matches) => {
+        if (mounted) setAllMatches(matches);
+      })
+      .catch((error) => console.error(error));
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const ranked = useMemo(() => getRankedPlayersFromMatches(allMatches), [allMatches]);

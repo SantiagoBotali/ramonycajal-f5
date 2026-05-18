@@ -3,8 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import { Trophy, Filter } from "lucide-react";
-import { MATCHES, getRankedPlayersFromMatches } from "@/lib/data";
-import { initializeMatches, loadStoredMatches } from "@/lib/storage";
+import { getRankedPlayersFromMatches } from "@/lib/data";
+import { loadStoredMatches } from "@/lib/storage";
 import { Match } from "@/lib/types";
 import RankingCard from "@/components/RankingCard";
 import { AnimatedText } from "@/components/ui/AnimatedShinyText";
@@ -14,8 +14,17 @@ export default function HomePage() {
   const [showRYCOnly, setShowRYCOnly] = useState(false);
 
   useEffect(() => {
-    initializeMatches(MATCHES);
-    setAllMatches(loadStoredMatches());
+    let mounted = true;
+
+    loadStoredMatches()
+      .then((matches) => {
+        if (mounted) setAllMatches(matches);
+      })
+      .catch((error) => console.error(error));
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const ranked = useMemo(() => getRankedPlayersFromMatches(allMatches), [allMatches]);

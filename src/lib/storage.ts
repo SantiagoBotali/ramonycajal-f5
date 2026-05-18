@@ -1,51 +1,50 @@
 "use client";
+
 import { Match } from "./types";
 
-const KEY = "ryc-matches";
-const SEEDED_KEY = "ryc-seeded-v1";
+async function request<T>(path: string, init?: RequestInit): Promise<T> {
+  const response = await fetch(path, {
+    ...init,
+    cache: "no-store",
+    headers: {
+      "Content-Type": "application/json",
+      ...init?.headers,
+    },
+  });
 
-export function loadStoredMatches(): Match[] {
-  if (typeof window === "undefined") return [];
-  try {
-    const raw = localStorage.getItem(KEY);
-    return raw ? (JSON.parse(raw) as Match[]) : [];
-  } catch {
-    return [];
+  if (!response.ok) {
+    const body = await response.json().catch(() => null);
+    throw new Error(body?.error ?? "No se pudieron sincronizar los partidos");
   }
+
+  return response.json() as Promise<T>;
 }
 
-/** Seeds localStorage with static matches on first load. Idempotent. */
-export function initializeMatches(staticMatches: Match[]): void {
-  if (typeof window === "undefined") return;
-  if (localStorage.getItem(SEEDED_KEY)) return;
-  const existing = loadStoredMatches();
-  const existingIds = new Set(existing.map((m) => m.id));
-  const toAdd = staticMatches.filter((m) => !existingIds.has(m.id));
-  localStorage.setItem(KEY, JSON.stringify([...existing, ...toAdd]));
-  localStorage.setItem(SEEDED_KEY, "true");
+export async function loadStoredMatches(): Promise<Match[]> {
+  const data = await request<{ matches: Match[] }>("/api/matches");
+  return data.matches;
 }
 
-export function saveMatch(match: Match): void {
-  if (typeof window === "undefined") return;
-  const existing = loadStoredMatches();
-  existing.unshift(match);
-  localStorage.setItem(KEY, JSON.stringify(existing));
+export async function saveMatch(match: Match): Promise<Match> {
+  const data = await request<{ match: Match }>("/api/matches", {
+    method: "POST",
+    body: JSON.stringify(match),
+  });
+  return data.match;
 }
 
-export function updateMatch(updated: Match): void {
-  if (typeof window === "undefined") return;
-  const matches = loadStoredMatches();
-  const idx = matches.findIndex((m) => m.id === updated.id);
-  if (idx >= 0) {
-    matches[idx] = updated;
-    localStorage.setItem(KEY, JSON.stringify(matches));
-  }
+export async function updateMatch(updated: Match): Promise<Match> {
+  const data = await request<{ match: Match }>(`/api/matches/${updated.id}`, {
+    method: "PUT",
+    body: JSON.stringify(updated),
+  });
+  return data.match;
 }
 
-export function deleteMatch(id: string): void {
-  if (typeof window === "undefined") return;
-  const matches = loadStoredMatches();
-  localStorage.setItem(KEY, JSON.stringify(matches.filter((m) => m.id !== id)));
+export async function deleteMatch(id: string): Promise<void> {
+  await request<{ ok: true }>(`/api/matches/${id}`, {
+    method: "DELETE",
+  });
 }
 
 export function generateId(): string {

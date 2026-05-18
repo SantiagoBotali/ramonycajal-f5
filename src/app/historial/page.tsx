@@ -4,8 +4,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Clock, Plus } from "lucide-react";
 import Link from "next/link";
-import { MATCHES } from "@/lib/data";
-import { loadStoredMatches, initializeMatches, deleteMatch } from "@/lib/storage";
+import { loadStoredMatches, deleteMatch } from "@/lib/storage";
 import { Match } from "@/lib/types";
 import MatchCard from "@/components/MatchCard";
 
@@ -13,8 +12,17 @@ export default function HistorialPage() {
   const [matches, setMatches] = useState<Match[]>([]);
 
   useEffect(() => {
-    initializeMatches(MATCHES);
-    setMatches(loadStoredMatches());
+    let mounted = true;
+
+    loadStoredMatches()
+      .then((storedMatches) => {
+        if (mounted) setMatches(storedMatches);
+      })
+      .catch((error) => console.error(error));
+
+    return () => {
+      mounted = false;
+    };
   }, []);
 
   const sorted = [...matches].sort((a, b) => {
@@ -25,9 +33,9 @@ export default function HistorialPage() {
     return parseDate(b.date) - parseDate(a.date);
   });
 
-  function handleDelete(id: string) {
-    deleteMatch(id);
-    setMatches(loadStoredMatches());
+  async function handleDelete(id: string) {
+    await deleteMatch(id);
+    setMatches(await loadStoredMatches());
   }
 
   return (

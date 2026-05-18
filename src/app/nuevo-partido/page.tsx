@@ -61,16 +61,16 @@ export default function NuevoPartidoPage() {
 
   function handleSkipMVP() {
     setShowMVPPicker(false);
-    doSave(null);
+    void doSave(null);
   }
 
   function handleCelebrationClose() {
     setShowCelebration(false);
     setShowMVPPicker(false);
-    doSave(selectedMVP);
+    void doSave(selectedMVP);
   }
 
-  function doSave(mvp: string | null) {
+  async function doSave(mvp: string | null) {
     if (saving) return;
     setSaving(true);
     const match = {
@@ -81,8 +81,13 @@ export default function NuevoPartidoPage() {
       isUserCreated: true,
       ...(mvp ? { mvp } : {}),
     };
-    saveMatch(match);
-    setTimeout(() => router.push("/historial"), 400);
+    try {
+      await saveMatch(match);
+      setTimeout(() => router.push("/historial"), 400);
+    } catch (error) {
+      console.error(error);
+      setSaving(false);
+    }
   }
 
   const stepLabels: Record<Step, string> = {
